@@ -1,0 +1,64 @@
+<jittershader name="slidescan">
+	<description>
+	Oscillation slide/scan effect.
+	</description>
+	<param name="time" type="float" default="0.0" />
+	<param name="preview" type="bool" default="0." />
+	<param name="rand_seed" type="float" default="1.0" />
+	<param name="grid_width" type="vec2" default="17. 10." />
+	<language name="glsl" version="2.1">
+		<bind param="preview" program="fp" />
+		<bind param="time" program="fp" />
+		<bind param="grid_width" program="fp" />
+		<bind param="rand_seed" program="fp" />
+		<program name="vp" type="vertex" source="sh.passthrudim.vp.glsl" />
+		<program name="fp" type="fragment">
+<![CDATA[
+
+uniform sampler2DRect tex0;
+varying vec2 texcoord0;
+varying vec2 texdim0;
+
+uniform bool preview;
+uniform vec2 grid_width;
+uniform float rand_seed;
+uniform float time;
+
+float rand(vec2 co){
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+vec2 rand2(vec2 pos){
+	return rand(rand(pos));
+}
+
+void main()
+{
+	vec2 uv = texcoord0/texdim0;
+	vec2 p_uv = uv;
+	
+	//vec2 pos = (1.0/grid_width) * (uv/(1.0/grid_width)); //normal
+	vec2 random_position = vec2( rand2(floor(uv/(1.0/grid_width))*rand_seed) );
+	
+	vec2 modulation = vec2(0.,sin(time));
+	
+	//vec2 pos = (1.0/grid_width) * (random_position/(1.0/grid_width)); //random
+	vec2 pos = (1.0/grid_width) * (mod(random_position+modulation,1.0)/(1.0/grid_width));
+	p_uv = mod(p_uv,1.0/grid_width) + pos;
+	
+	vec4 color = vec4(0.0);
+	
+	if(preview){
+		color += step(mod(uv.x,1.0/grid_width.x), 0.002);
+		color += step(mod(uv.y,1.0/grid_width.y), 0.002);	
+	}
+	
+	color += texture2DRect(tex0,p_uv*texdim0);	
+
+	gl_FragColor = color;
+}
+
+]]>
+		</program>
+	</language>
+</jittershader>
